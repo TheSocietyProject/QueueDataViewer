@@ -3,30 +3,75 @@
 function createInputs(){
 	let i = 0;
 	
+	/*
+		for time, pos and estTime:
+		start, end, maybe borderStart and borderStep
+	*/
+	
+	let txtWidth = width / 12;
+	let ySize;
+	
 	inputs[i] = createElement('p', 'time: ');
-  inputs[i].position(0, getRenderSize());
-	
+	ySize = inputs[i].height * 2;
+  inputs[i].position(0, getRenderSize() + ySize / 2 - inputs[i].height);
 	i ++;
 	
-	console.log(inputs[i - 1].y);
-	
-	inputs[i] = createInput("kek");
-	inputs[i].position(inputs[i - 1].width, getRenderSize());
-	
+	minTime = Date.now() - 24 * 60 * 60 * 1000;
+	inputs[i] = createInput(minTime);
+	inputs[i].id = "minTime";
+	inputs[i].position(txtWidth, getRenderSize() + ySize / 2);
 	i ++;
 	
 	
+	maxTime = Date.now();
+	inputs[i] = createInput(maxTime);
+	inputs[i].position(1.5 * txtWidth + inputs[i - 1].width, getRenderSize() + ySize / 2);
+	i ++;
+	
+	
+	
+	inputs[i] = createElement('p', 'pos: ');
+  inputs[i].position(0, getRenderSize() + 1.5 * ySize - inputs[i].height);
+	i ++;
+	
+	inputs[i] = createInput("0");
+	inputs[i].position(txtWidth, getRenderSize() + 1.5 * ySize);
+	i ++;
+	
+	inputs[i] = createInput(100);
+	inputs[i].position(1.5 * txtWidth + inputs[i - 1].width, getRenderSize() + 1.5 * ySize);
+	i ++;
+	
+	
+	
+	inputs[i] = createElement('p', 'estTime: ');
+  inputs[i].position(0, getRenderSize() + 2.5 * ySize - inputs[i].height);
+	i ++;
+	
+	inputs[i] = createInput("0");
+	inputs[i].position(txtWidth, getRenderSize() + 2.5 * ySize);
+	i ++;
+	
+	inputs[i] = createInput(320);
+	inputs[i].position(1.5 * txtWidth + inputs[i - 1].width, getRenderSize() + 2.5 * ySize);
+	i ++;
+	
+	
+
 	
 	inputs[i] = createButton("reload");
 	inputs[i].mousePressed(reload);
-	inputs[i].position(width - inputs[i].width * 0, getRenderSize());
+	let fac = 1.8;
+	inputs[i].size(inputs[i].widht * fac * 3, inputs[i].height * fac);
+	inputs[i].position(width - inputs[i].width * 2, getRenderSize() + 1.5 * ySize);
+	
 	
 }
 
 
 
 function setup() {
-	createCanvas(displayWidth, 3 * displayHeight / 4);
+	createCanvas(displayWidth / 2, 3 * displayHeight / 4 / 2);
 	
 	createInputs();
 	
@@ -37,7 +82,8 @@ function setup() {
 	
 	loadPos();
 	
-	ySize = height / 3;
+	
+	textSize(height / 24);
 	
 }
 
@@ -47,8 +93,8 @@ let size = 2;
 
 // showing/frame
 
-let minTime = 1551021181113;
-let maxTime = 1551048021010;
+let minTime = 1550271611957;
+let maxTime = 1550444399131;
 
 let minPos = 0;
 let maxPos = 100;
@@ -66,9 +112,9 @@ let borderCol;
 // TODO new ll when start / stop when end
 
 
-let borderStartEs = 0;
+//let borderStartEs = 0;
 let borderStartPos = 0;
-let borderStepEt = 2;
+//let borderStepEt = 2;
 let borderStepPos = 10;
 
 // data
@@ -76,21 +122,24 @@ var pos = [];
 
 var inputs = [];
 
-let ySize;
-
 
 let result;
 
 function loadPos(){
-	let path = "data/QueueLength/QueueLengthLog" + year() + "-" + month() + "-" + day() + ".txt";
-	path = 'data/QueueLength/QueueLengthLog.txt';
-	path = "data/data.txt";
-	loadStrings(path, pickString);
+	var date;
+	let path;
+	
+	for(let i = minTime; i < maxTime + 24 * 60 * 60 * 1000; i += 24 * 60 * 60 * 1000){
+		date = new Date(i);
+		
+		path = "data/QueueLengthLog" + date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + ".txt";
+		console.log(path);
+		loadStrings(path, pickQueueLengthData);
+	}
+	
 }
 
-function pickString(result){
-	
-	
+function pickQueueLengthData(result){
 	
 	let llP = new LinkedList(true);
 	let llT = new LinkedList(false);
@@ -161,14 +210,25 @@ function draw() {
 
 function getRenderSize(){
 	return height;
-	//return height - ySize - 1;
 }
 
 
 
 function reload(){
-	// TODO with loading and stuff....
+	console.log("reload");
+	
+	minTime = inputs[1].value();
+	//maxTime = inputs[2].value();
+	
+	minPos = inputs[4].value();
+	maxPos = inputs[5].value();
+	
+	minestTime = inputs[7].value();
+	maxEstTime = inputs[8].value();
+	
+	
 	// TODO bool for automatic reloading
+	loadPos();
 	
 }
 
@@ -255,8 +315,12 @@ class LinkedList {
 	}
 	
 	getFrom(start){
-		// TODO return right thing
-		return this.head;
+		let cur = this.head;
+		while(cur.time < start && cur != null){
+			cur = cur.next;
+		}
+		
+		return cur;
 	}
 	
 	render(){
@@ -313,6 +377,21 @@ class QueuePos {
 			line(getX(this.last.time), getY(this.last.val, this.last.pos), getX(this.time), getY(this.val, this.pos));
 		
 		ellipse(getX(this.time), getY(this.val, this.pos), 2 * size, 2 * size);
+		
+		if(dist(getX(this.time), getY(this.val, this.pos), mouseX, mouseY) < 3 * size){
+			fill(250);
+			stroke(0);
+			let txt = this.time + ": " + this.val;
+			if(this.pos){
+				txt += " ";
+			} else {
+				txt += " mins ";
+			}
+			rect(getX(this.time), getY(this.val, this.pos) - textAscent() * 1.5, textWidth(txt), textAscent() * 2);
+			fill(0);
+			text(txt, getX(this.time), getY(this.val, this.pos));
+		}
+		
 	}
 	
 	
