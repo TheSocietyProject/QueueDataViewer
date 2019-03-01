@@ -1,17 +1,43 @@
 
 
+function createInputs(){
+	let i = 0;
+	
+	inputs[i] = createElement('p', 'time: ');
+  inputs[i].position(0, getRenderSize());
+	
+	i ++;
+	
+	console.log(inputs[i - 1].y);
+	
+	inputs[i] = createInput("kek");
+	inputs[i].position(inputs[i - 1].width, getRenderSize());
+	
+	i ++;
+	
+	
+	
+	inputs[i] = createButton("reload");
+	inputs[i].mousePressed(reload);
+	inputs[i].position(width - inputs[i].width * 0, getRenderSize());
+	
+}
 
 
 
 function setup() {
-	createCanvas(displayWidth / 2, displayHeight);
+	createCanvas(displayWidth, 3 * displayHeight / 4);
+	
+	createInputs();
 	
 	bg = color(0);
 	queueLine = color(125, 125, 0);
 	estTimeLine = color(255, 0, 0);
-	borderCol = color(128);
+	borderCol = color(16);
 	
 	loadPos();
+	
+	ySize = height / 3;
 	
 }
 
@@ -21,14 +47,14 @@ let size = 2;
 
 // showing/frame
 
-let minTime = 150000;
-let maxTime = 151000;
+let minTime = 1551021181113;
+let maxTime = 1551048021010;
 
 let minPos = 0;
 let maxPos = 100;
 
 let minEstTime = 0;
-let maxEstTime = 10; // in mins
+let maxEstTime = 320; // in mins 60 != 240
 
 
 // colors
@@ -37,28 +63,89 @@ let queueLine;
 let estTimeLine;
 let borderCol;
 
+// TODO new ll when start / stop when end
 
-let borderStart = 0;
+
+let borderStartEs = 0;
+let borderStartPos = 0;
 let borderStepEt = 2;
 let borderStepPos = 10;
 
 // data
 var pos = [];
 
+var inputs = [];
+
+let ySize;
+
+
+let result;
 
 function loadPos(){
-	let ll = new LinkedList(new QueuePos(150000, 75), true);
-	ll.add(new QueuePos(150700, 100));
-	ll.add(new QueuePos(151000, 50));
-	this.pos.push(ll);
+	let path = "data/QueueLength/QueueLengthLog" + year() + "-" + month() + "-" + day() + ".txt";
+	path = 'data/QueueLength/QueueLengthLog.txt';
+	path = "data/data.txt";
+	loadStrings(path, pickString);
+}
+
+function pickString(result){
 	
 	
-	ll = new LinkedList(new QueuePos(150000, 9), false);
-	ll.add(new QueuePos(150300, 5));
-	ll.add(new QueuePos(151000, 3));
-	this.pos.push(ll);
+	
+	let llP = new LinkedList(true);
+	let llT = new LinkedList(false);
+	for(let i = 1; i < result.length; i ++){
+		llP.add(getInfo(result[i], true));
+		llT.add(getInfo(result[i], false));
+		
+	}
 	
 	
+	this.pos.push(llP);
+	this.pos.push(llT);
+	
+	
+}
+
+function getInfo(line, boo){
+	let time = line.split(": ")[0];
+	if(time == "start") return;
+	
+	let data = line.split(": ")[1].split(" :")[0];
+	if(boo){
+		data = 0;
+		let estT = line.split(" :: ")[1];
+		// 6h 24m
+		
+		
+		if(estT.length != 0 || estT == "already joined the server"){
+				
+			
+			let anlz = estT.split("d");
+			if(anlz.length == 2){
+				data += int(anlz[0]) * 24 * 60;
+				estT = anlz[1].substring(1);
+			}
+			
+			anlz = estT.split("h");
+			if(anlz.length == 2){
+				data += int(anlz[0]) * 60;
+				estT = anlz[1].substring(1);
+			}
+			
+			anlz = estT.split("m");
+			if(anlz.length == 2){
+				data += int(anlz[0]);
+				estT = anlz[1].substring(1);
+			}
+		}
+		
+	}
+	
+	
+	let rV = new QueuePos(time, data);
+	
+	return rV;
 }
 
 
@@ -68,13 +155,45 @@ function draw() {
 	renderBorder();
 	
 	renderQueue();
+	
+	
 }
+
+function getRenderSize(){
+	return height;
+	//return height - ySize - 1;
+}
+
+
+
+function reload(){
+	// TODO with loading and stuff....
+	// TODO bool for automatic reloading
+	
+}
+
+
+
 
 function renderBorder(){
 	stroke(borderCol);
-	line(0, getY(0), width, getY(0));
 	
-	let i = borderStart;
+	stroke(borderCol);
+	
+	// TODO
+	let cur;
+	//let i = borderStart;
+	for(let i = borderStartPos; i > 0; i -= borderStepPos){
+		cur = getY(i, true);
+		line(0, cur, width, cur);
+	}
+	
+	
+	for(let i = borderStartPos; i < width; i += borderStepPos){
+		cur = getY(i, true);
+		line(0, cur, width, cur);
+	}
+	
 	
 	
 }
@@ -90,8 +209,8 @@ function renderQueue(){
 
 function getY(y, pos){
 	if(pos)
-		return (maxPos - y) * height / (maxPos - minPos);
-	return (maxEstTime - y) * height / (maxEstTime - minEstTime);
+		return (maxPos - y) * getRenderSize() / (maxPos - minPos);
+	return (maxEstTime - y) * getRenderSize() / (maxEstTime - minEstTime);
 }
 
 
@@ -105,18 +224,30 @@ function getX(x){
 class LinkedList {
 	
 	
-	constructor(first, pos){
+	
+	constructor(pos){
+		
+		this.pos = pos;
+	}
+	
+	init(first){
 		first.setWetherPos(pos);
 		
 		this.head = first;
 		this.tail = first;
 		
-		this.pos = pos;
 	}
 	
-	
 	add(toAdd){
+		if(toAdd == null)
+			return;
+		
 		toAdd.setWetherPos(this.pos);
+		
+		if(this.tail == null){
+			this.init(toAdd);
+			return;
+		}
 		
 		toAdd.setLast(this.tail);
 		this.tail.setNext(toAdd);
@@ -142,7 +273,6 @@ class QueuePos {
 	constructor(time, val){
 		this.time = time; // long
 		this.val = val; // int
-		
 		// also pos
 		
 		// also last + next
