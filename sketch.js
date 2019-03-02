@@ -71,7 +71,7 @@ function createInputs(){
 
 
 function setup() {
-	createCanvas(displayWidth / 2, 3 * displayHeight / 4 / 2);
+	createCanvas(displayWidth, 3 * displayHeight / 4);
 	
 	createInputs();
 	
@@ -217,8 +217,8 @@ function getRenderSize(){
 function reload(){
 	console.log("reload");
 	
-	minTime = inputs[1].value();
-	//maxTime = inputs[2].value();
+	minTime = int(inputs[1].value());
+	maxTime = int(inputs[2].value());
 	
 	minPos = inputs[4].value();
 	maxPos = inputs[5].value();
